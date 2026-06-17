@@ -30,18 +30,22 @@ function BiographyModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(43, 42, 40, 0.6)", backdropFilter: "blur(4px)" }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto"
-        style={{ background: "#fffdf9", border: "1px solid #e3ded6" }}
+        className="relative w-full max-w-2xl flex flex-col"
+        style={{
+          background: "#fffdf9",
+          border: "1px solid #e3ded6",
+          maxHeight: "90vh",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header — fixed, never scrolls */}
         <div
-          className="sticky top-0 flex items-center justify-between px-8 py-5 border-b"
+          className="shrink-0 flex items-center justify-between px-6 md:px-8 py-5 border-b"
           style={{ background: "#fffdf9", borderColor: "#e3ded6" }}
         >
           <div>
@@ -52,7 +56,7 @@ function BiographyModal({ onClose }: { onClose: () => void }) {
               Biography
             </p>
             <h3
-              className="text-2xl"
+              className="text-xl md:text-2xl"
               style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}
             >
               Chief Engr. Godswill Nwosu (KSC)
@@ -60,7 +64,7 @@ function BiographyModal({ onClose }: { onClose: () => void }) {
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 ml-6 w-8 h-8 flex items-center justify-center border transition-colors"
+            className="shrink-0 ml-4 w-8 h-8 flex items-center justify-center border transition-colors"
             style={{ borderColor: "#e3ded6", color: "#6f665e" }}
             onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#8b5e34"; e.currentTarget.style.color = "#8b5e34"; }}
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e3ded6"; e.currentTarget.style.color = "#6f665e"; }}
@@ -72,12 +76,19 @@ function BiographyModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-8 py-8 space-y-6">
+        {/* Scrollable body — only this part scrolls */}
+        <div
+          className="flex-1 overflow-y-auto px-6 md:px-8 py-6 space-y-6"
+          style={{
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+            boxShadow: "inset 0 -12px 16px -8px rgba(184,151,58,0.08)",
+          }}
+        >
           {BIOGRAPHY_PARAGRAPHS.map((para, i) => (
             <p
               key={i}
-              className={i === 0 ? "text-xl italic leading-relaxed" : "text-base leading-8"}
+              className={i === 0 ? "text-lg md:text-xl italic leading-relaxed" : "text-sm md:text-base leading-8"}
               style={{
                 color: i === 0 ? "#6f665e" : "#2b2a28",
                 fontFamily: i === 0
@@ -90,7 +101,6 @@ function BiographyModal({ onClose }: { onClose: () => void }) {
             </p>
           ))}
 
-          {/* Closing line */}
           <div className="pt-4 border-t" style={{ borderColor: "#e3ded6" }}>
             <p
               className="text-center text-lg italic"
@@ -99,6 +109,25 @@ function BiographyModal({ onClose }: { onClose: () => void }) {
               June 11, 1977 — March 31, 2026
             </p>
           </div>
+        </div>
+
+        {/* Scroll hint — fixed at bottom of modal */}
+        <div
+          className="shrink-0 flex items-center justify-center gap-2 py-2 border-t"
+          style={{ borderColor: "#e3ded6", background: "#faf7f2" }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d6ccc2" strokeWidth="2">
+            <path d="M12 5v14M5 12l7 7 7-7" />
+          </svg>
+          <span
+            className="text-xs"
+            style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif", letterSpacing: "0.15em" }}
+          >
+            scroll to read more
+          </span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d6ccc2" strokeWidth="2">
+            <path d="M12 5v14M5 12l7 7 7-7" />
+          </svg>
         </div>
       </div>
     </div>
@@ -219,18 +248,22 @@ function CondolenceModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-8"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(43,42,40,0.6)", backdropFilter: "blur(4px)" }}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg"
-        style={{ background: "#fffdf9", border: "1px solid #e3ded6" }}
+        className="relative w-full max-w-lg flex flex-col"
+        style={{
+          background: "#fffdf9",
+          border: "1px solid #e3ded6",
+          maxHeight: "85vh",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header — never scrolls */}
         <div
-          className="flex items-center justify-between px-7 py-4 border-b"
+          className="shrink-0 flex items-center justify-between px-6 py-4 border-b"
           style={{ borderColor: "#e3ded6" }}
         >
           <span
@@ -253,15 +286,21 @@ function CondolenceModal({
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-7 py-8">
+        {/* Scrollable body — only this part scrolls */}
+        <div
+          className="flex-1 overflow-y-auto px-6 py-7"
+          style={{
+            WebkitOverflowScrolling: "touch",
+            overscrollBehavior: "contain",
+          }}
+        >
           <p
-            className="text-xl italic leading-relaxed mb-6"
+            className="text-lg md:text-xl italic leading-relaxed mb-6"
             style={{ color: "#2b2a28", fontFamily: "var(--font-cormorant), serif" }}
           >
             &ldquo;{c.message}&rdquo;
           </p>
-          <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-4 border-t" style={{ borderColor: "#e3ded6" }}>
             <span
               className="text-sm font-semibold"
               style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}
@@ -276,10 +315,10 @@ function CondolenceModal({
           </div>
         </div>
 
-        {/* Navigation */}
+        {/* Navigation — never scrolls */}
         <div
-          className="flex items-center justify-between px-7 py-4 border-t"
-          style={{ borderColor: "#e3ded6" }}
+          className="shrink-0 flex items-center justify-between px-6 py-4 border-t"
+          style={{ borderColor: "#e3ded6", background: "#faf7f2" }}
         >
           <button
             onClick={() => onNavigate(index - 1)}
@@ -292,7 +331,7 @@ function CondolenceModal({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M15 18l-6-6 6-6" />
             </svg>
-            Previous
+            Prev
           </button>
 
           <div className="flex gap-1.5">
