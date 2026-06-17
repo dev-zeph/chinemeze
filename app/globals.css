@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --cream:    #fffdf9;
+  --cream-2:  #faf7f2;
+  --border:   #e3ded6;
+  --border-2: #d6ccc2;
+  --text-muted: #6f665e;
+  --text-dark:  #2b2a28;
+  --accent:   #8b5e34;
+  --accent-light: #c17f59;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  background-color: var(--cream);
+  color: var(--text-dark);
+  font-family: var(--font-lato), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 300;
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-up {
+  animation: fadeUp 0.7s ease forwards;
+}
