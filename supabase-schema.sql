@@ -1,6 +1,6 @@
 -- Run this in your Supabase SQL editor
 
--- to force redeployment
+-- to force redeployment.
 
 create table condolences (
   id bigint primary key generated always as identity,
