@@ -22,112 +22,102 @@ const BIOGRAPHY_PARAGRAPHS = [
   "His life was a testament of what one soul can mean to so many. He leaves behind a legacy stitched into the fabric of countless hearts. Though his time was short, the brilliance of his spirit will shine on, casting light and hope wherever his memory is held.",
 ];
 
+const MODAL_OVERLAY: React.CSSProperties = {
+  background: "rgba(43,42,40,0.65)",
+  backdropFilter: "blur(4px)",
+};
+
+const MODAL_SHELL: React.CSSProperties = {
+  background: "#fffdf9",
+  border: "1px solid #e3ded6",
+  maxHeight: "calc(100dvh - 2rem)",
+};
+
+function CloseButton({ onClose }: { onClose: () => void }) {
+  return (
+    <button
+      onClick={onClose}
+      className="shrink-0 w-8 h-8 flex items-center justify-center border transition-colors"
+      style={{ borderColor: "#e3ded6", color: "#6f665e" }}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#8b5e34"; e.currentTarget.style.color = "#8b5e34"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e3ded6"; e.currentTarget.style.color = "#6f665e"; }}
+      aria-label="Close"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M18 6 6 18M6 6l12 12" />
+      </svg>
+    </button>
+  );
+}
+
 function BiographyModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, []);
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
+  }, [onClose]);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(43, 42, 40, 0.6)", backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+      style={MODAL_OVERLAY}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl flex flex-col"
-        style={{
-          background: "#fffdf9",
-          border: "1px solid #e3ded6",
-          maxHeight: "90vh",
-        }}
+        className="w-full sm:max-w-2xl flex flex-col min-h-0"
+        style={MODAL_SHELL}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header — fixed, never scrolls */}
+        {/* Header */}
         <div
-          className="shrink-0 flex items-center justify-between px-6 md:px-8 py-5 border-b"
-          style={{ background: "#fffdf9", borderColor: "#e3ded6" }}
+          className="shrink-0 flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: "#e3ded6" }}
         >
           <div>
-            <p
-              className="text-xs uppercase tracking-[0.3em] mb-1"
-              style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}
-            >
+            <p className="text-xs uppercase tracking-[0.3em] mb-0.5" style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}>
               Biography
             </p>
-            <h3
-              className="text-xl md:text-2xl"
-              style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}
-            >
+            <h3 className="text-lg md:text-xl" style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}>
               Chief Engr. Godswill Nwosu (KSC)
             </h3>
           </div>
-          <button
-            onClick={onClose}
-            className="shrink-0 ml-4 w-8 h-8 flex items-center justify-center border transition-colors"
-            style={{ borderColor: "#e3ded6", color: "#6f665e" }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#8b5e34"; e.currentTarget.style.color = "#8b5e34"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e3ded6"; e.currentTarget.style.color = "#6f665e"; }}
-            aria-label="Close"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
+          <CloseButton onClose={onClose} />
         </div>
 
-        {/* Scrollable body — only this part scrolls */}
+        {/* Scrollable body */}
         <div
-          className="flex-1 overflow-y-auto px-6 md:px-8 py-6 space-y-6"
-          style={{
-            WebkitOverflowScrolling: "touch",
-            overscrollBehavior: "contain",
-            boxShadow: "inset 0 -12px 16px -8px rgba(184,151,58,0.08)",
-          }}
+          className="flex-1 overflow-y-auto min-h-0 px-6 py-6 space-y-5"
+          style={{ WebkitOverflowScrolling: "touch" as unknown as undefined, overscrollBehavior: "contain" }}
         >
           {BIOGRAPHY_PARAGRAPHS.map((para, i) => (
             <p
               key={i}
-              className={i === 0 ? "text-lg md:text-xl italic leading-relaxed" : "text-sm md:text-base leading-8"}
+              className={i === 0 ? "text-base italic leading-relaxed" : "text-sm leading-7"}
               style={{
                 color: i === 0 ? "#6f665e" : "#2b2a28",
-                fontFamily: i === 0
-                  ? "var(--font-cormorant), serif"
-                  : "var(--font-lato), sans-serif",
+                fontFamily: i === 0 ? "var(--font-cormorant), serif" : "var(--font-lato), sans-serif",
                 fontWeight: i === 0 ? 400 : 300,
               }}
             >
               {para}
             </p>
           ))}
-
           <div className="pt-4 border-t" style={{ borderColor: "#e3ded6" }}>
-            <p
-              className="text-center text-lg italic"
-              style={{ color: "#8b5e34", fontFamily: "var(--font-cormorant), serif" }}
-            >
+            <p className="text-center text-base italic" style={{ color: "#8b5e34", fontFamily: "var(--font-cormorant), serif" }}>
               June 11, 1977 — March 31, 2026
             </p>
           </div>
         </div>
 
-        {/* Scroll hint — fixed at bottom of modal */}
+        {/* Footer hint */}
         <div
-          className="shrink-0 flex items-center justify-center gap-2 py-2 border-t"
+          className="shrink-0 flex items-center justify-center py-3 border-t"
           style={{ borderColor: "#e3ded6", background: "#faf7f2" }}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d6ccc2" strokeWidth="2">
-            <path d="M12 5v14M5 12l7 7 7-7" />
-          </svg>
-          <span
-            className="text-xs"
-            style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif", letterSpacing: "0.15em" }}
-          >
+          <span className="text-xs uppercase tracking-[0.2em]" style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}>
             scroll to read more
           </span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#d6ccc2" strokeWidth="2">
-            <path d="M12 5v14M5 12l7 7 7-7" />
-          </svg>
         </div>
       </div>
     </div>
@@ -248,76 +238,50 @@ function CondolenceModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(43,42,40,0.6)", backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+      style={MODAL_OVERLAY}
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg flex flex-col"
-        style={{
-          background: "#fffdf9",
-          border: "1px solid #e3ded6",
-          maxHeight: "85vh",
-        }}
+        className="w-full sm:max-w-lg flex flex-col min-h-0"
+        style={MODAL_SHELL}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header — never scrolls */}
+        {/* Header */}
         <div
           className="shrink-0 flex items-center justify-between px-6 py-4 border-b"
           style={{ borderColor: "#e3ded6" }}
         >
-          <span
-            className="text-xs uppercase tracking-[0.3em]"
-            style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}
-          >
+          <span className="text-xs uppercase tracking-[0.3em]" style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}>
             Condolence {index + 1} of {condolences.length}
           </span>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center border transition-colors"
-            style={{ borderColor: "#e3ded6", color: "#6f665e" }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#8b5e34"; e.currentTarget.style.color = "#8b5e34"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e3ded6"; e.currentTarget.style.color = "#6f665e"; }}
-            aria-label="Close"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
+          <CloseButton onClose={onClose} />
         </div>
 
-        {/* Scrollable body — only this part scrolls */}
+        {/* Scrollable body */}
         <div
-          className="flex-1 overflow-y-auto px-6 py-7"
-          style={{
-            WebkitOverflowScrolling: "touch",
-            overscrollBehavior: "contain",
-          }}
+          className="flex-1 overflow-y-auto min-h-0 px-6 py-6"
+          style={{ WebkitOverflowScrolling: "touch" as unknown as undefined, overscrollBehavior: "contain" }}
         >
           <p
-            className="text-lg md:text-xl italic leading-relaxed mb-6"
+            className="text-base italic leading-relaxed mb-6"
             style={{ color: "#2b2a28", fontFamily: "var(--font-cormorant), serif" }}
           >
             &ldquo;{c.message}&rdquo;
           </p>
           <div className="flex items-center justify-between flex-wrap gap-2 pt-4 border-t" style={{ borderColor: "#e3ded6" }}>
-            <span
-              className="text-sm font-semibold"
-              style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}
-            >
+            <span className="text-sm font-semibold" style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}>
               {c.name}
             </span>
             <span className="text-xs" style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}>
-              {new Date(c.created_at).toLocaleDateString("en-GB", {
-                day: "numeric", month: "long", year: "numeric",
-              })}
+              {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
             </span>
           </div>
         </div>
 
-        {/* Navigation — never scrolls */}
+        {/* Navigation */}
         <div
-          className="shrink-0 flex items-center justify-between px-6 py-4 border-t"
+          className="shrink-0 flex items-center justify-between px-6 py-3 border-t"
           style={{ borderColor: "#e3ded6", background: "#faf7f2" }}
         >
           <button
@@ -328,9 +292,7 @@ function CondolenceModal({
             onMouseEnter={(e) => { if (index > 0) e.currentTarget.style.color = "#8b5e34"; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = "#6f665e"; }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M15 18l-6-6 6-6" /></svg>
             Prev
           </button>
 
@@ -355,9 +317,7 @@ function CondolenceModal({
             onMouseLeave={(e) => { e.currentTarget.style.color = "#6f665e"; }}
           >
             Next
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M9 18l6-6-6-6" />
-            </svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 18l6-6-6-6" /></svg>
           </button>
         </div>
       </div>
