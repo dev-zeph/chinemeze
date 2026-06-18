@@ -252,10 +252,20 @@ function CondolenceModal({
           className="shrink-0 flex items-center justify-between px-6 py-4 border-b"
           style={{ borderColor: "#e3ded6" }}
         >
-          <span className="text-xs uppercase tracking-[0.3em]" style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}>
-            Condolence {index + 1} of {condolences.length}
-          </span>
-          <CloseButton onClose={onClose} />
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] mb-0.5" style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}>
+              Condolence
+            </p>
+            <h3 className="text-lg" style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}>
+              {c.name}
+            </h3>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="text-xs" style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}>
+              {index + 1}/{condolences.length}
+            </span>
+            <CloseButton onClose={onClose} />
+          </div>
         </div>
 
         {/* Scrollable body */}
@@ -264,15 +274,12 @@ function CondolenceModal({
           style={{ WebkitOverflowScrolling: "touch" as unknown as undefined, overscrollBehavior: "contain" }}
         >
           <p
-            className="text-base italic leading-relaxed mb-6"
+            className="text-xl md:text-2xl italic leading-relaxed mb-6"
             style={{ color: "#2b2a28", fontFamily: "var(--font-cormorant), serif" }}
           >
             &ldquo;{c.message}&rdquo;
           </p>
-          <div className="flex items-center justify-between flex-wrap gap-2 pt-4 border-t" style={{ borderColor: "#e3ded6" }}>
-            <span className="text-sm font-semibold" style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}>
-              {c.name}
-            </span>
+          <div className="pt-4 border-t" style={{ borderColor: "#e3ded6" }}>
             <span className="text-xs" style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}>
               {new Date(c.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
             </span>
@@ -335,7 +342,6 @@ export default function MemorialPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState("");
-  const [copiedField, setCopiedField] = useState<string | null>(null);
   const [galleryPage, setGalleryPage] = useState(1);
   const [biographyOpen, setBiographyOpen] = useState(false);
   const [condolencePage, setCondolencePage] = useState(1);
@@ -386,18 +392,6 @@ export default function MemorialPage() {
     }
   }
 
-  function copyToClipboard(text: string, field: string) {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedField(field);
-      setTimeout(() => setCopiedField(null), 2000);
-    });
-  }
-
-  const nigerianBankDetails = [
-    { label: "Bank Name", value: "First Bank of Nigeria" },
-    { label: "Account Name", value: "Nwosu Family Fund" },
-    { label: "Account Number", value: "0123456789" },
-  ];
 
   return (
     <main style={{ background: "#fffdf9", minHeight: "100vh" }}>
@@ -787,81 +781,6 @@ export default function MemorialPage() {
               Be the first to leave a message of condolence.
             </p>
           )}
-        </section>
-
-        {/* DONATIONS */}
-        <section id="donate" className="py-20">
-          <Divider label="Condolence Gift" />
-
-          <h2
-            className="text-4xl md:text-5xl text-center mb-4"
-            style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}
-          >
-            Send a Condolence Gift
-          </h2>
-          <p
-            className="text-center text-sm mb-10 max-w-lg mx-auto"
-            style={{ color: "#6f665e", fontFamily: "var(--font-lato), sans-serif" }}
-          >
-            If you wish to support the Nwosu family during this difficult time,
-            kindly make a donation to the account details below.
-          </p>
-
-          <div
-            className="p-6 border"
-            style={{ background: "#faf7f2", borderColor: "#e3ded6" }}
-          >
-            <p
-              className="text-xs uppercase tracking-[0.3em] mb-6"
-              style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}
-            >
-              Nigerian Account (Naira)
-            </p>
-            <div className="space-y-4">
-              {nigerianBankDetails.map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between gap-4">
-                  <div>
-                    <p
-                      className="text-xs mb-0.5"
-                      style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}
-                    >
-                      {label}
-                    </p>
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: "#2b2a28", fontFamily: "var(--font-lato), sans-serif" }}
-                    >
-                      {value}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => copyToClipboard(value, label)}
-                    className="text-xs px-3 py-1.5 border transition-colors shrink-0"
-                    style={{
-                      borderColor: copiedField === label ? "#8b5e34" : "#e3ded6",
-                      color: copiedField === label ? "#8b5e34" : "#6f665e",
-                      fontFamily: "var(--font-lato), sans-serif",
-                    }}
-                  >
-                    {copiedField === label ? "Copied" : "Copy"}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <p
-            className="text-center text-lg italic mt-10"
-            style={{ color: "#6f665e", fontFamily: "var(--font-cormorant), serif" }}
-          >
-            Thank you for your kindness and support.
-          </p>
-          <p
-            className="text-center text-xs mt-3"
-            style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}
-          >
-            For enquiries, please contact the family directly.
-          </p>
         </section>
 
       </div>
