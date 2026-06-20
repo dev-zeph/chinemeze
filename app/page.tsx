@@ -124,6 +124,167 @@ function BiographyModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+type Photo = { name: string; url: string; created_at?: string };
+
+function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded: (p: Photo) => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
+  }, [onClose]);
+
+  function handleFile(f: File) {
+    setError("");
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  }
+
+  async function handleUpload() {
+    if (!file) return;
+    setUploading(true);
+    setError("");
+    try {
+      const fd = new FormData();
+      fd.append("photo", file);
+      const res = await fetch("/api/photos", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      onUploaded(data);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+      style={MODAL_OVERLAY}
+      onClick={onClose}
+    >
+      <div
+        className="w-full sm:max-w-md flex flex-col min-h-0"
+        style={MODAL_SHELL}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#e3ded6" }}>
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] mb-0.5" style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}>Gallery</p>
+            <h3 className="text-lg" style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}>Upload a Photo</h3>
+          </div>
+          <CloseButton onClose={onClose} />
+        </div>
+
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-6 space-y-4">
+          {/* Drop zone */}
+          <div
+            className="border-2 border-dashed rounded flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors"
+            style={{ borderColor: preview ? "#8b5e34" : "#e3ded6", background: "#faf7f2", minHeight: "180px" }}
+            onClick={() => inputRef.current?.click()}
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+          >
+            {preview ? (
+              <img src={preview} alt="Preview" className="max-h-48 max-w-full object-contain" />
+            ) : (
+              <>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d6ccc2" strokeWidth="1.5">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+                </svg>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}>
+                  Tap to select or drag a photo here
+                </p>
+                <p className="text-xs" style={{ color: "#e3ded6", fontFamily: "var(--font-lato), sans-serif" }}>
+                  JPEG · PNG · WebP · GIF — max 10 MB
+                </p>
+              </>
+            )}
+          </div>
+          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+
+          {file && (
+            <p className="text-xs truncate" style={{ color: "#6f665e", fontFamily: "var(--font-lato), sans-serif" }}>
+              {file.name} &middot; {(file.size / 1024 / 1024).toFixed(1)} MB
+            </p>
+          )}
+
+          {error && <p className="text-sm" style={{ color: "#c17f59", fontFamily: "var(--font-lato), sans-serif" }}>{error}</p>}
+        </div>
+
+        <div className="shrink-0 flex gap-3 px-6 py-4 border-t" style={{ borderColor: "#e3ded6", background: "#faf7f2" }}>
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 text-xs uppercase tracking-[0.25em] border transition-colors"
+            style={{ borderColor: "#e3ded6", color: "#6f665e", fontFamily: "var(--font-lato), sans-serif" }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleUpload}
+            disabled={!file || uploading}
+            className="flex-1 py-3 text-xs uppercase tracking-[0.25em] transition-colors disabled:opacity-40"
+            style={{ background: "#8b5e34", color: "#fffdf9", fontFamily: "var(--font-lato), sans-serif" }}
+            onMouseEnter={(e) => { if (file && !uploading) e.currentTarget.style.background = "#c17f59"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "#8b5e34"; }}
+          >
+            {uploading ? "Uploading..." : "Upload Photo"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PhotoLightbox({ photo, onClose }: { photo: Photo; onClose: () => void }) {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(43,42,40,0.92)" }}
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center border transition-colors"
+        style={{ borderColor: "#6f665e", color: "#d6ccc2" }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#d6ccc2"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#6f665e"; }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+      <img
+        src={photo.url}
+        alt="Gallery photo"
+        className="max-w-full max-h-[90dvh] object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+    </div>
+  );
+}
+
 function Divider({ label }: { label?: string }) {
   return (
     <div className="flex items-center gap-4 my-12">
@@ -333,10 +494,10 @@ function CondolenceModal({
 }
 
 const PHOTOS_PER_PAGE = 4;
-const TOTAL_PHOTOS = 12;
 
 export default function MemorialPage() {
   const [condolences, setCondolences] = useState<Condolence[]>([]);
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -344,6 +505,8 @@ export default function MemorialPage() {
   const [formError, setFormError] = useState("");
   const [galleryPage, setGalleryPage] = useState(1);
   const [biographyOpen, setBiographyOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
   const [condolencePage, setCondolencePage] = useState(1);
   const [selectedCondolence, setSelectedCondolence] = useState<number | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -355,14 +518,17 @@ export default function MemorialPage() {
     condolencePage * CONDOLENCES_PER_PAGE
   );
 
-  const totalGalleryPages = Math.ceil(TOTAL_PHOTOS / PHOTOS_PER_PAGE);
-  const galleryStart = (galleryPage - 1) * PHOTOS_PER_PAGE + 1;
-  const galleryEnd = Math.min(galleryPage * PHOTOS_PER_PAGE, TOTAL_PHOTOS);
+  const totalGalleryPages = Math.max(1, Math.ceil(photos.length / PHOTOS_PER_PAGE));
+  const pagedPhotos = photos.slice((galleryPage - 1) * PHOTOS_PER_PAGE, galleryPage * PHOTOS_PER_PAGE);
 
   useEffect(() => {
     fetch("/api/condolences")
       .then((r) => r.json())
       .then((data) => Array.isArray(data) && setCondolences(data))
+      .catch(() => {});
+    fetch("/api/photos")
+      .then((r) => r.json())
+      .then((data) => Array.isArray(data) && setPhotos(data))
       .catch(() => {});
   }, []);
 
@@ -396,6 +562,13 @@ export default function MemorialPage() {
   return (
     <main style={{ background: "#fffdf9", minHeight: "100vh" }}>
       {biographyOpen && <BiographyModal onClose={() => setBiographyOpen(false)} />}
+      {uploadOpen && (
+        <UploadModal
+          onClose={() => setUploadOpen(false)}
+          onUploaded={(p) => { setPhotos((prev) => [p, ...prev]); setGalleryPage(1); }}
+        />
+      )}
+      {lightboxPhoto && <PhotoLightbox photo={lightboxPhoto} onClose={() => setLightboxPhoto(null)} />}
       {selectedCondolence !== null && (
         <CondolenceModal
           condolences={condolences}
@@ -547,71 +720,92 @@ export default function MemorialPage() {
         {/* GALLERY */}
         <section className="py-10">
           <Divider label="Gallery" />
-          <h2
-            className="text-4xl md:text-5xl text-center mb-12"
-            style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}
-          >
-            Chinemeze.
-          </h2>
 
-          <div className="grid grid-cols-2 gap-3">
-            {Array.from({ length: PHOTOS_PER_PAGE }, (_, i) => galleryStart + i).map((n) => (
-              <div
-                key={n}
-                className="aspect-square flex items-center justify-center text-xs uppercase tracking-widest"
-                style={{ background: "#faf7f2", color: "#e3ded6", border: "1px solid #e3ded6" }}
+          <div className="flex items-center justify-between mb-10">
+            <h2
+              className="text-4xl md:text-5xl"
+              style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}
+            >
+              Chinemeze.
+            </h2>
+            <button
+              onClick={() => setUploadOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 text-xs uppercase tracking-[0.2em] border transition-colors"
+              style={{ borderColor: "#8b5e34", color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#8b5e34"; e.currentTarget.style.color = "#fffdf9"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#8b5e34"; }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+              </svg>
+              Add Photo
+            </button>
+          </div>
+
+          {photos.length === 0 ? (
+            <div
+              className="flex flex-col items-center justify-center gap-3 py-16 border border-dashed"
+              style={{ borderColor: "#e3ded6" }}
+            >
+              <p className="text-sm" style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}>
+                No photos yet. Be the first to share a memory.
+              </p>
+              <button
+                onClick={() => setUploadOpen(true)}
+                className="text-xs uppercase tracking-[0.2em] px-5 py-2.5 transition-colors"
+                style={{ background: "#8b5e34", color: "#fffdf9", fontFamily: "var(--font-lato), sans-serif" }}
               >
-                Photo {n}
+                Upload Photo
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                {pagedPhotos.map((photo) => (
+                  <div
+                    key={photo.name}
+                    className="aspect-square overflow-hidden cursor-pointer relative group"
+                    style={{ border: "1px solid #e3ded6" }}
+                    onClick={() => setLightboxPhoto(photo)}
+                  >
+                    <img
+                      src={photo.url}
+                      alt="Gallery"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-center gap-6 mt-8">
-            <button
-              onClick={() => setGalleryPage((p) => Math.max(1, p - 1))}
-              disabled={galleryPage === 1}
-              className="text-xs uppercase tracking-[0.2em] px-4 py-2 border transition-colors disabled:opacity-30"
-              style={{
-                borderColor: "#e3ded6",
-                color: "#6f665e",
-                fontFamily: "var(--font-lato), sans-serif",
-              }}
-              onMouseEnter={(e) => { if (galleryPage !== 1) e.currentTarget.style.borderColor = "#8b5e34"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e3ded6"; }}
-            >
-              Previous
-            </button>
-
-            <span
-              className="text-xs"
-              style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}
-            >
-              {galleryPage} / {totalGalleryPages}
-            </span>
-
-            <button
-              onClick={() => setGalleryPage((p) => Math.min(totalGalleryPages, p + 1))}
-              disabled={galleryPage === totalGalleryPages}
-              className="text-xs uppercase tracking-[0.2em] px-4 py-2 border transition-colors disabled:opacity-30"
-              style={{
-                borderColor: "#e3ded6",
-                color: "#6f665e",
-                fontFamily: "var(--font-lato), sans-serif",
-              }}
-              onMouseEnter={(e) => { if (galleryPage !== totalGalleryPages) e.currentTarget.style.borderColor = "#8b5e34"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e3ded6"; }}
-            >
-              Next
-            </button>
-          </div>
-
-          <p
-            className="text-center text-xs mt-4 uppercase tracking-widest"
-            style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}
-          >
-            Photos will be added here
-          </p>
+              {totalGalleryPages > 1 && (
+                <div className="flex items-center justify-center gap-6 mt-8">
+                  <button
+                    onClick={() => setGalleryPage((p) => Math.max(1, p - 1))}
+                    disabled={galleryPage === 1}
+                    className="text-xs uppercase tracking-[0.2em] px-4 py-2 border transition-colors disabled:opacity-30"
+                    style={{ borderColor: "#e3ded6", color: "#6f665e", fontFamily: "var(--font-lato), sans-serif" }}
+                    onMouseEnter={(e) => { if (galleryPage !== 1) e.currentTarget.style.borderColor = "#8b5e34"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e3ded6"; }}
+                  >
+                    Previous
+                  </button>
+                  <span className="text-xs" style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}>
+                    {galleryPage} / {totalGalleryPages}
+                  </span>
+                  <button
+                    onClick={() => setGalleryPage((p) => Math.min(totalGalleryPages, p + 1))}
+                    disabled={galleryPage === totalGalleryPages}
+                    className="text-xs uppercase tracking-[0.2em] px-4 py-2 border transition-colors disabled:opacity-30"
+                    style={{ borderColor: "#e3ded6", color: "#6f665e", fontFamily: "var(--font-lato), sans-serif" }}
+                    onMouseEnter={(e) => { if (galleryPage !== totalGalleryPages) e.currentTarget.style.borderColor = "#8b5e34"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#e3ded6"; }}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </section>
 
         {/* CONDOLENCES */}
