@@ -126,124 +126,195 @@ function BiographyModal({ onClose }: { onClose: () => void }) {
 
 type Photo = { name: string; url: string; created_at?: string };
 
+type FileEntry = { file: File; preview: string; status: "pending" | "uploading" | "done" | "error"; error?: string };
+
 function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded: (p: Photo) => void }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [entries, setEntries] = useState<FileEntry[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape" && !uploading) onClose(); }
     window.addEventListener("keydown", onKey);
     return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
-  }, [onClose]);
+  }, [onClose, uploading]);
 
-  function handleFile(f: File) {
-    setError("");
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
+  function addFiles(fileList: FileList | null) {
+    if (!fileList) return;
+    const next: FileEntry[] = Array.from(fileList).map((f) => ({
+      file: f,
+      preview: URL.createObjectURL(f),
+      status: "pending",
+    }));
+    setEntries((prev) => [...prev, ...next]);
   }
 
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
+  function removeEntry(i: number) {
+    setEntries((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   async function handleUpload() {
-    if (!file) return;
+    if (entries.length === 0) return;
     setUploading(true);
-    setError("");
-    try {
-      const fd = new FormData();
-      fd.append("photo", file);
-      const res = await fetch("/api/photos", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
-      onUploaded(data);
-      onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setUploading(false);
+
+    for (let i = 0; i < entries.length; i++) {
+      if (entries[i].status === "done") continue;
+      setEntries((prev) => prev.map((e, idx) => idx === i ? { ...e, status: "uploading" } : e));
+      try {
+        const fd = new FormData();
+        fd.append("photo", entries[i].file);
+        const res = await fetch("/api/photos", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+        onUploaded(data);
+        setEntries((prev) => prev.map((e, idx) => idx === i ? { ...e, status: "done" } : e));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Failed";
+        setEntries((prev) => prev.map((e, idx) => idx === i ? { ...e, status: "error", error: msg } : e));
+      }
     }
+    setUploading(false);
   }
+
+  const allDone = entries.length > 0 && entries.every((e) => e.status === "done");
+  const hasErrors = entries.some((e) => e.status === "error");
+  const pending = entries.filter((e) => e.status !== "done").length;
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       style={MODAL_OVERLAY}
-      onClick={onClose}
+      onClick={() => { if (!uploading) onClose(); }}
     >
       <div
-        className="w-full sm:max-w-md flex flex-col min-h-0"
+        className="w-full sm:max-w-lg flex flex-col min-h-0"
         style={MODAL_SHELL}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#e3ded6" }}>
           <div>
             <p className="text-xs uppercase tracking-[0.3em] mb-0.5" style={{ color: "#8b5e34", fontFamily: "var(--font-lato), sans-serif" }}>Gallery</p>
-            <h3 className="text-lg" style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}>Upload a Photo</h3>
+            <h3 className="text-lg" style={{ fontFamily: "var(--font-cormorant), serif", color: "#2b2a28", fontWeight: 700 }}>
+              Upload Photos {entries.length > 0 && <span style={{ color: "#d6ccc2" }}>({entries.length})</span>}
+            </h3>
           </div>
-          <CloseButton onClose={onClose} />
+          {!uploading && <CloseButton onClose={onClose} />}
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-6 space-y-4">
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-6 py-5 space-y-4" style={{ overscrollBehavior: "contain" }}>
           {/* Drop zone */}
           <div
-            className="border-2 border-dashed rounded flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors"
-            style={{ borderColor: preview ? "#8b5e34" : "#e3ded6", background: "#faf7f2", minHeight: "180px" }}
+            className="border-2 border-dashed flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors py-8"
+            style={{ borderColor: entries.length > 0 ? "#8b5e34" : "#e3ded6", background: "#faf7f2" }}
             onClick={() => inputRef.current?.click()}
-            onDrop={handleDrop}
+            onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
             onDragOver={(e) => e.preventDefault()}
           >
-            {preview ? (
-              <img src={preview} alt="Preview" className="max-h-48 max-w-full object-contain" />
-            ) : (
-              <>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d6ccc2" strokeWidth="1.5">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
-                </svg>
-                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}>
-                  Tap to select or drag a photo here
-                </p>
-                <p className="text-xs" style={{ color: "#e3ded6", fontFamily: "var(--font-lato), sans-serif" }}>
-                  JPEG · PNG · WebP · GIF — max 10 MB
-                </p>
-              </>
-            )}
-          </div>
-          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-
-          {file && (
-            <p className="text-xs truncate" style={{ color: "#6f665e", fontFamily: "var(--font-lato), sans-serif" }}>
-              {file.name} &middot; {(file.size / 1024 / 1024).toFixed(1)} MB
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#d6ccc2" strokeWidth="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+            </svg>
+            <p className="text-xs uppercase tracking-[0.2em] text-center" style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}>
+              {entries.length > 0 ? "Add more photos" : "Tap to select or drag photos here"}
             </p>
-          )}
+            <p className="text-xs" style={{ color: "#e3ded6", fontFamily: "var(--font-lato), sans-serif" }}>
+              JPEG · PNG · WebP · GIF — max 10 MB each
+            </p>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }}
+          />
 
-          {error && <p className="text-sm" style={{ color: "#c17f59", fontFamily: "var(--font-lato), sans-serif" }}>{error}</p>}
+          {/* Preview grid */}
+          {entries.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {entries.map((entry, i) => (
+                <div key={i} className="relative aspect-square overflow-hidden" style={{ border: "1px solid #e3ded6" }}>
+                  <img src={entry.preview} alt="" className="w-full h-full object-cover" />
+
+                  {/* Status overlay */}
+                  {entry.status === "uploading" && (
+                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(255,253,249,0.75)" }}>
+                      <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5e34" strokeWidth="2">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                    </div>
+                  )}
+                  {entry.status === "done" && (
+                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(255,253,249,0.75)" }}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5e34" strokeWidth="2">
+                        <path d="M20 6 9 17l-5-5" />
+                      </svg>
+                    </div>
+                  )}
+                  {entry.status === "error" && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-1" style={{ background: "rgba(255,253,249,0.85)" }}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c17f59" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
+                      </svg>
+                      <span className="text-center leading-tight" style={{ color: "#c17f59", fontSize: "0.6rem", fontFamily: "var(--font-lato), sans-serif" }}>
+                        {entry.error ?? "Failed"}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Remove button — only when not uploading */}
+                  {entry.status === "pending" && !uploading && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeEntry(i); }}
+                      className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center"
+                      style={{ background: "rgba(43,42,40,0.6)", color: "#fff" }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M18 6 6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
+        {/* Footer */}
         <div className="shrink-0 flex gap-3 px-6 py-4 border-t" style={{ borderColor: "#e3ded6", background: "#faf7f2" }}>
           <button
-            onClick={onClose}
+            onClick={allDone ? onClose : () => { if (!uploading) onClose(); }}
             className="flex-1 py-3 text-xs uppercase tracking-[0.25em] border transition-colors"
             style={{ borderColor: "#e3ded6", color: "#6f665e", fontFamily: "var(--font-lato), sans-serif" }}
           >
-            Cancel
+            {allDone ? "Done" : "Cancel"}
           </button>
-          <button
-            onClick={handleUpload}
-            disabled={!file || uploading}
-            className="flex-1 py-3 text-xs uppercase tracking-[0.25em] transition-colors disabled:opacity-40"
-            style={{ background: "#8b5e34", color: "#fffdf9", fontFamily: "var(--font-lato), sans-serif" }}
-            onMouseEnter={(e) => { if (file && !uploading) e.currentTarget.style.background = "#c17f59"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#8b5e34"; }}
-          >
-            {uploading ? "Uploading..." : "Upload Photo"}
-          </button>
+          {!allDone && (
+            <button
+              onClick={handleUpload}
+              disabled={entries.length === 0 || uploading}
+              className="flex-1 py-3 text-xs uppercase tracking-[0.25em] transition-colors disabled:opacity-40"
+              style={{ background: "#8b5e34", color: "#fffdf9", fontFamily: "var(--font-lato), sans-serif" }}
+              onMouseEnter={(e) => { if (!uploading) e.currentTarget.style.background = "#c17f59"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#8b5e34"; }}
+            >
+              {uploading
+                ? `Uploading ${entries.filter((e) => e.status === "done").length}/${entries.length}...`
+                : `Upload ${pending > 0 ? pending : entries.length} Photo${entries.length !== 1 ? "s" : ""}`}
+            </button>
+          )}
+          {hasErrors && allDone === false && !uploading && (
+            <button
+              onClick={handleUpload}
+              className="flex-1 py-3 text-xs uppercase tracking-[0.25em] border transition-colors"
+              style={{ borderColor: "#c17f59", color: "#c17f59", fontFamily: "var(--font-lato), sans-serif" }}
+            >
+              Retry failed
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -589,7 +660,7 @@ export default function MemorialPage() {
           style={{ borderColor: "#d6ccc2", background: "#e3ded6" }}
         >
           <Image
-            src="/portrait.jpg"
+            src="/godswill.png"
             alt="Chief Engineer Godswill Nwosu"
             width={208}
             height={208}
