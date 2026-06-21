@@ -105,7 +105,7 @@ function BiographyModal({ onClose }: { onClose: () => void }) {
           ))}
           <div className="pt-4 border-t" style={{ borderColor: "#e3ded6" }}>
             <p className="text-center text-base italic" style={{ color: "#8b5e34", fontFamily: "var(--font-cormorant), serif" }}>
-              June 11, 1977 — March 31, 2026
+              June 11, 1977 — May 31, 2026
             </p>
           </div>
         </div>
@@ -321,23 +321,55 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
   );
 }
 
-function PhotoLightbox({ photo, onClose }: { photo: Photo; onClose: () => void }) {
+function PhotoLightbox({
+  photos,
+  index,
+  onClose,
+  onNavigate,
+}: {
+  photos: Photo[];
+  index: number;
+  onClose: () => void;
+  onNavigate: (i: number) => void;
+}) {
+  const touchStartX = useRef<number | null>(null);
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft" && index > 0) onNavigate(index - 1);
+      if (e.key === "ArrowRight" && index < photos.length - 1) onNavigate(index + 1);
+    }
     window.addEventListener("keydown", onKey);
     return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", onKey); };
-  }, [onClose]);
+  }, [onClose, onNavigate, index, photos.length]);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(delta) < 40) return;
+    if (delta < 0 && index < photos.length - 1) onNavigate(index + 1);
+    if (delta > 0 && index > 0) onNavigate(index - 1);
+  }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(43,42,40,0.92)" }}
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(43,42,40,0.95)" }}
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
+      {/* Close */}
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center border transition-colors"
+        className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center border transition-colors z-10"
         style={{ borderColor: "#6f665e", color: "#d6ccc2" }}
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#d6ccc2"; }}
         onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#6f665e"; }}
@@ -346,12 +378,67 @@ function PhotoLightbox({ photo, onClose }: { photo: Photo; onClose: () => void }
           <path d="M18 6 6 18M6 6l12 12" />
         </svg>
       </button>
+
+      {/* Counter */}
+      <div
+        className="absolute top-4 left-4 text-xs z-10"
+        style={{ color: "#6f665e", fontFamily: "var(--font-lato), sans-serif", letterSpacing: "0.15em" }}
+      >
+        {index + 1} / {photos.length}
+      </div>
+
+      {/* Prev arrow */}
+      {index > 0 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNavigate(index - 1); }}
+          className="absolute left-3 md:left-6 w-10 h-10 flex items-center justify-center border transition-colors z-10"
+          style={{ borderColor: "#6f665e", color: "#d6ccc2" }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#d6ccc2"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#6f665e"; }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+      )}
+
+      {/* Image */}
       <img
-        src={photo.url}
+        src={photos[index].url}
         alt="Gallery photo"
-        className="max-w-full max-h-[90dvh] object-contain"
+        className="max-w-full max-h-[90dvh] object-contain px-16"
         onClick={(e) => e.stopPropagation()}
+        style={{ userSelect: "none" }}
       />
+
+      {/* Next arrow */}
+      {index < photos.length - 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNavigate(index + 1); }}
+          className="absolute right-3 md:right-6 w-10 h-10 flex items-center justify-center border transition-colors z-10"
+          style={{ borderColor: "#6f665e", color: "#d6ccc2" }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#d6ccc2"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#6f665e"; }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M9 18l6-6-6-6" />
+          </svg>
+        </button>
+      )}
+
+      {/* Dot indicators */}
+      {photos.length > 1 && (
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          {photos.map((_, i) => (
+            <button
+              key={i}
+              onClick={(e) => { e.stopPropagation(); onNavigate(i); }}
+              className="w-1.5 h-1.5 rounded-full transition-colors"
+              style={{ background: i === index ? "#d6ccc2" : "#6f665e" }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -577,7 +664,7 @@ export default function MemorialPage() {
   const [galleryPage, setGalleryPage] = useState(1);
   const [biographyOpen, setBiographyOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [condolencePage, setCondolencePage] = useState(1);
   const [selectedCondolence, setSelectedCondolence] = useState<number | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -639,7 +726,14 @@ export default function MemorialPage() {
           onUploaded={(p) => { setPhotos((prev) => [p, ...prev]); setGalleryPage(1); }}
         />
       )}
-      {lightboxPhoto && <PhotoLightbox photo={lightboxPhoto} onClose={() => setLightboxPhoto(null)} />}
+      {lightboxIndex !== null && (
+        <PhotoLightbox
+          photos={photos}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onNavigate={(i) => setLightboxIndex(i)}
+        />
+      )}
       {selectedCondolence !== null && (
         <CondolenceModal
           condolences={condolences}
@@ -695,7 +789,7 @@ export default function MemorialPage() {
           className="tracking-[0.25em] text-sm mb-6"
           style={{ color: "#d6ccc2", fontFamily: "var(--font-lato), sans-serif" }}
         >
-          June 11, 1977 &mdash; March 31, 2026
+          June 11, 1977 &mdash; May 31, 2026
         </p>
 
         <p
@@ -837,7 +931,7 @@ export default function MemorialPage() {
                     key={photo.name}
                     className="aspect-square overflow-hidden cursor-pointer relative group"
                     style={{ border: "1px solid #e3ded6" }}
-                    onClick={() => setLightboxPhoto(photo)}
+                    onClick={() => setLightboxIndex(photos.indexOf(photo))}
                   >
                     <img
                       src={photo.url}
